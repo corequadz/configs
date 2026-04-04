@@ -13,7 +13,6 @@ fi
 REMNANODE_DIR="/opt/remnanode"
 SSL_DIR="/opt/remnawave/nginx"
 COMPOSE_FILE="${REMNANODE_DIR}/docker-compose.yml"
-VOLUME_LINE="      - /opt/remnawave/nginx:/var/lib/remnawave/configs/xray/ssl"
 
 if [[ $EUID -ne 0 ]]; then
   echo "Запусти скрипт от root"
@@ -56,8 +55,8 @@ LIVE_DIR="/etc/letsencrypt/live/${DOMAIN}"
 
 if [[ ! -d "${LIVE_DIR}" ]]; then
   echo "Папка ${LIVE_DIR} не найдена."
-  echo "Скорее всего certbot создал домен с суффиксом вроде -0001."
-  echo "Посмотри доступные папки:"
+  echo "Возможно, certbot создал папку с суффиксом вроде -0001."
+  echo "Доступные папки:"
   ls -1 /etc/letsencrypt/live/
   exit 1
 fi
@@ -87,24 +86,11 @@ if grep -Fq "/opt/remnawave/nginx:/var/lib/remnawave/configs/xray/ssl" "${COMPOS
   echo "Volume уже есть, пропускаю"
 else
   echo "Добавляю volume в ${COMPOSE_FILE} ..."
-  python3 - <<'PY'
-from pathlib import Path
+  cat <<EOF >> "${COMPOSE_FILE}"
 
-compose_path = Path("/opt/remnanode/docker-compose.yml")
-text = compose_path.read_text()
-
-target = "    volumes:\n"
-insert = "    volumes:\n      - /opt/remnawave/nginx:/var/lib/remnawave/configs/xray/ssl\n"
-
-if "/opt/remnawave/nginx:/var/lib/remnawave/configs/xray/ssl" in text:
-    pass
-elif target in text:
-    text = text.replace(target, insert, 1)
-else:
-    raise SystemExit("Не найден блок '    volumes:' в docker-compose.yml. Добавь volume вручную.")
-
-compose_path.write_text(text)
-PY
+    volumes:
+      - /opt/remnawave/nginx:/var/lib/remnawave/configs/xray/ssl
+EOF
 fi
 
 echo
@@ -114,7 +100,7 @@ docker compose down
 docker compose up -d
 
 echo
-echo "Логи remnanode:"
+echo "Последние логи remnanode:"
 docker compose logs --tail=50
 
 echo
@@ -126,9 +112,6 @@ echo "=== Готово ==="
 echo "Сертификаты лежат в: ${SSL_DIR}"
 echo "Домен: ${DOMAIN}"
 echo
-echo "Если Hysteria всё ещё не стартует, проверь:"
-echo "1) что в профиле указан путь:"
-echo '   /var/lib/remnawave/configs/xray/ssl/privkey.key'
-echo '   /var/lib/remnawave/configs/xray/ssl/fullchain.pem'
-echo "2) что домен резолвится на этот сервер"
-echo "3) что 443/tcp был свободен во время certbot"
+echo "Проверь, что в Hysteria inbound указано:"
+echo '  /var/lib/remnawave/configs/xray/ssl/privkey.key'
+echo '  /var/lib/remnawave/configs/xray/ssl/fullchain.pem'
