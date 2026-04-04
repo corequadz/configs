@@ -14,6 +14,11 @@ REMNANODE_DIR="/opt/remnanode"
 SSL_DIR="/opt/remnawave/nginx"
 COMPOSE_FILE="${REMNANODE_DIR}/docker-compose.yml"
 
+# Hysteria settings
+FAST_PORT="443"
+STEALTH_PORT="444"
+HOP_RANGE="20000:50000"
+
 if [[ $EUID -ne 0 ]]; then
   echo "Запусти скрипт от root"
   exit 1
@@ -35,20 +40,20 @@ if [[ ! -f "${COMPOSE_FILE}" ]]; then
 fi
 
 echo
-echo "[1/8] Останавливаю Caddy..."
+echo "[1/10] Останавливаю Caddy..."
 docker stop caddy-remnawave || true
 
 echo
-echo "[2/8] Устанавливаю certbot..."
+echo "[2/10] Устанавливаю certbot..."
 apt update
 apt install -y certbot
 
 echo
-echo "[3/8] Получаю сертификат для ${DOMAIN}..."
+echo "[3/10] Получаю сертификат для ${DOMAIN}..."
 certbot certonly --standalone -d "${DOMAIN}"
 
 echo
-echo "[4/8] Создаю папку для сертификатов..."
+echo "[4/10] Создаю папку для сертификатов..."
 mkdir -p "${SSL_DIR}"
 
 LIVE_DIR="/etc/letsencrypt/live/${DOMAIN}"
@@ -62,12 +67,12 @@ if [[ ! -d "${LIVE_DIR}" ]]; then
 fi
 
 echo
-echo "[5/8] Копирую сертификаты..."
+echo "[5/10] Копирую сертификаты..."
 cp -L "${LIVE_DIR}/fullchain.pem" "${SSL_DIR}/fullchain.pem"
 cp -L "${LIVE_DIR}/privkey.pem" "${SSL_DIR}/privkey.key"
 
 echo
-echo "[6/8] Проверяю файлы..."
+echo "[6/10] Проверяю файлы..."
 ls -l "${SSL_DIR}"
 
 if [[ ! -f "${SSL_DIR}/fullchain.pem" ]]; then
@@ -81,7 +86,7 @@ if [[ ! -f "${SSL_DIR}/privkey.key" ]]; then
 fi
 
 echo
-echo "[7/8] Проверяю volume в docker-compose..."
+echo "[7/10] Проверяю volume в docker-compose..."
 if grep -Fq "/opt/remnawave/nginx:/var/lib/remnawave/configs/xray/ssl" "${COMPOSE_FILE}"; then
   echo "Volume уже есть, пропускаю"
 else
@@ -94,7 +99,37 @@ EOF
 fi
 
 echo
-echo "[8/8] Перезапускаю ноду..."
+echo "[8/10] Открываю UDP-порты..."
+if command -v ufw >/dev/null 2>&1; then
+  ufw allow ${FAST_PORT}/udp || true
+  ufw allow ${STEALTH_PORT}/udp || true
+  ufw allow ${HOP_RANGE}/udp || true
+else
+  echo "ufw не найден, пропускаю открытие портов через ufw"
+fi
+
+echo
+echo "[9/10] Добавляю правило ротации портов Hysteria..."
+RULE_EXISTS=0
+if iptables -t nat -C PREROUTING -p udp --dport ${HOP_RANGE} -j REDIRECT --to-ports ${STEALTH_PORT} 2>/dev/null; then
+  RULE_EXISTS=1
+fi
+
+if [[ "${RULE_EXISTS}" -eq 1 ]]; then
+  echo "Правило iptables уже существует, пропускаю"
+else
+  iptables -t nat -A PREROUTING -p udp --dport ${HOP_RANGE} -j REDIRECT --to-ports ${STEALTH_PORT}
+  echo "Правило добавлено: ${HOP_RANGE}/udp -> ${STEALTH_PORT}/udp"
+fi
+
+if ! command -v netfilter-persistent >/dev/null 2>&1; then
+  apt install -y iptables-persistent
+fi
+
+netfilter-persistent save || true
+
+echo
+echo "[10/10] Перезапускаю ноду..."
 cd "${REMNANODE_DIR}"
 docker compose down
 docker compose up -d
@@ -112,6 +147,10 @@ echo "=== Готово ==="
 echo "Сертификаты лежат в: ${SSL_DIR}"
 echo "Домен: ${DOMAIN}"
 echo
-echo "Проверь, что в Hysteria inbound указано:"
-echo '  /var/lib/remnawave/configs/xray/ssl/privkey.key'
-echo '  /var/lib/remnawave/configs/xray/ssl/fullchain.pem'
+echo "Проверить:"
+echo "1) Hysteria FAST:    ${FAST_PORT}/udp"
+echo "2) Hysteria STEALTH: ${STEALTH_PORT}/udp"
+echo "3) Port hopping:     ${HOP_RANGE}/udp -> ${STEALTH_PORT}/udp"
+echo
+echo "Посмотреть правило:"
+echo "iptables -t nat -L -n -v"
