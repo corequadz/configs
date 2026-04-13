@@ -299,6 +299,9 @@ main() {
 
   ask_optional "Введите adtag (или оставь пустым)" ADTAG
 
+  ask "Введите SNI-домен" TLS_DOMAIN "google.com"
+  require_nonempty "$TLS_DOMAIN" "SNI-домен"
+
   ask "Введите домен или IP сервера" PUBLIC_HOST
   require_nonempty "$PUBLIC_HOST" "публичный домен или IP"
 
@@ -336,8 +339,11 @@ main() {
     EE_LINK="$(build_manual_tls_link_ee)"
   fi
 
-  green "Proxy:"
+  green "Proxy (ee):"
   echo "$EE_LINK"
+  echo
+
+  green "Proxy (dd):"
   echo "$DD_LINK"
   echo
 
