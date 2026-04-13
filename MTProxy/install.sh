@@ -245,16 +245,24 @@ wait_for_api() {
   return 1
 }
 
-build_manual_tls_link() {
+build_manual_tls_link_ee() {
   local sni_hex
   sni_hex="$(printf '%s' "$TLS_DOMAIN" | xxd -p -c 9999 | tr -d '\n')"
   printf 'tg://proxy?server=%s&port=%s&secret=ee%s%s\n' \
     "$PUBLIC_HOST" "$PUBLIC_PORT" "$SECRET" "$sni_hex"
 }
 
-get_tls_link_from_api() {
-  curl -fsS "http://127.0.0.1:9091/v1/users" \
-    | jq -r '.data[] | select(.username=="user1") | .links.tls[0] // empty'
+build_manual_secure_link_dd() {
+  printf 'tg://proxy?server=%s&port=%s&secret=dd%s\n' \
+    "$PUBLIC_HOST" "$PUBLIC_PORT" "$SECRET"
+}
+
+get_links_from_api() {
+  local json
+  json="$(curl -fsS "http://127.0.0.1:9091/v1/users")"
+
+  EE_LINK="$(printf '%s' "$json" | jq -r '.data[] | select(.username=="user1") | .links.tls[0] // empty')"
+  DD_LINK="$(printf '%s' "$json" | jq -r '.data[] | select(.username=="user1") | .links.secure[0] // empty')"
 }
 
 show_summary() {
@@ -281,22 +289,22 @@ main() {
   blue "Настройка MTProxy (Telemt Docker)"
   echo
 
-  ask_optional "Введите adtag (можно оставить пустым)" ADTAG
-  ask "Введите SNI-домен (если пусто — google.com)" TLS_DOMAIN "google.com"
+  ask_optional "Введите adtag (опционально)" ADTAG
+  ask "Введите SNI-домен" TLS_DOMAIN "google.com"
   require_nonempty "$TLS_DOMAIN" "SNI-домен"
 
-  ask "Введите публичный домен или IP сервера (это попадет в tg:// ссылку)" PUBLIC_HOST
+  ask "Введите домен или IP сервера" PUBLIC_HOST
   require_nonempty "$PUBLIC_HOST" "публичный домен или IP"
 
-  ask "Порт, на котором слушать MTProxy" LISTEN_PORT "443"
+  ask "Порт MTProxy" LISTEN_PORT "443"
   if ! validate_port "$LISTEN_PORT"; then
     red "Некорректный порт: $LISTEN_PORT"
     exit 1
   fi
 
-  ask "Публичный порт для tg:// ссылки" PUBLIC_PORT "$LISTEN_PORT"
+  ask "Порт, указанный в боте (если отличается)" PUBLIC_PORT "$LISTEN_PORT"
   if ! validate_port "$PUBLIC_PORT"; then
-    red "Некорректный публичный порт: $PUBLIC_PORT"
+    red "Некорректный порт: $PUBLIC_PORT"
     exit 1
   fi
 
@@ -308,22 +316,27 @@ main() {
 
   show_summary
 
+  EE_LINK=""
+  DD_LINK=""
+
   yellow "Жду запуск API Telemt..."
   if wait_for_api; then
-    TLS_LINK="$(get_tls_link_from_api || true)"
-  else
-    TLS_LINK=""
+    get_links_from_api || true
   fi
 
-  if [[ -n "${TLS_LINK:-}" ]]; then
-    green "Рабочая proxy-ссылка:"
-    echo "$TLS_LINK"
-  else
-    yellow "Не удалось получить ссылку через API, показываю fallback-вариант."
-    echo "$(build_manual_tls_link)"
+  if [[ -z "${DD_LINK:-}" ]]; then
+    DD_LINK="$(build_manual_secure_link_dd)"
   fi
 
+  if [[ -z "${EE_LINK:-}" ]]; then
+    EE_LINK="$(build_manual_tls_link_ee)"
+  fi
+
+  green "Proxy:"
+  echo "$EE_LINK"
+  echo "$DD_LINK"
   echo
+
   blue "Логи контейнера:"
   echo "cd $APP_DIR && docker compose logs -f"
 }
