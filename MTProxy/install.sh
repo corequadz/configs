@@ -288,10 +288,16 @@ main() {
 
   blue "Настройка MTProxy (Telemt Docker)"
   echo
+  SECRET="$(generate_secret)"
 
-  ask_optional "Введите adtag (опционально)" ADTAG
-  ask "Введите SNI-домен" TLS_DOMAIN "google.com"
-  require_nonempty "$TLS_DOMAIN" "SNI-домен"
+  blue "Сгенерирован secret для прокси:"
+  echo "$SECRET"
+  echo
+
+  yellow "Добавь этот secret в @MTProxybot и получи adtag"
+  echo
+
+  ask_optional "Введите adtag (или оставь пустым)" ADTAG
 
   ask "Введите домен или IP сервера" PUBLIC_HOST
   require_nonempty "$PUBLIC_HOST" "публичный домен или IP"
@@ -307,8 +313,6 @@ main() {
     red "Некорректный порт: $PUBLIC_PORT"
     exit 1
   fi
-
-  SECRET="$(generate_secret)"
 
   write_config
   write_compose
