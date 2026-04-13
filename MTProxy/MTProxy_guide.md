@@ -1,5 +1,15 @@
 # Подниманием MTProxy на своем сервер
 
+
+---
+Для установки можно воспользоваться скриптом, повторяет описанные далее действия
+
+```
+curl -fsSL https://raw.githubusercontent.com/corequadz/configs/main/MTProxy/install.sh -o install.sh && sudo bash install.sh
+```
+
+---
+
 1. Установливаем Docker
 ```
 sudo curl -fsSL https://get.docker.com | sh
