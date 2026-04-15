@@ -10,7 +10,7 @@ curl -fsSL https://raw.githubusercontent.com/corequadz/configs/main/MTProxy/inst
 
 ---
 
-1. Установливаем Docker
+1. Устанавливаем Docker
 ```
 sudo curl -fsSL https://get.docker.com | sh
 ```
