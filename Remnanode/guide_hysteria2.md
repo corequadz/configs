@@ -113,7 +113,6 @@ netfilter-persistent save
         "hysteriaSettings": {
           "version": 2,
           "bandwidth": {
-            # ОБЯЗАТЕЛЬНО ставьте немного меньше пропускной способности сервера, если канал fair-share - лучше занизить раза в 1,5-2
             "up": 300,
             "down": 300
           },
@@ -156,7 +155,6 @@ netfilter-persistent save
           },
           "version": 2,
           "bandwidth": {
-            # ОБЯЗАТЕЛЬНО ставьте немного меньше пропускной способности сервера, если канал fair-share - лучше занизить раза в 1,5-2
             "up": 300,
             "down": 300
           },
