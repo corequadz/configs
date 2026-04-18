@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 echo "=== Hysteria2 node preparation ==="
 
-read -r -p "Домен для сертификата (например hy.sovacorequad.shop): " DOMAIN
+read -r -p "Домен: " DOMAIN
 
 if [[ -z "${DOMAIN}" ]]; then
   echo "Домен не указан"

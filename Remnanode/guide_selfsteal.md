@@ -1,4 +1,4 @@
-# Настраиваем Remnanode с selfsteal-конфигом и Hysteria2
+# Настраиваем Remnanode с selfsteal-конфигом
 
 ## Шаг 1. Первичная установка
 
@@ -234,93 +234,6 @@ netfilter-persistent save
           ]
         }
       }
-    },
-    {
-      "tag": "HYSTERIA-FAST",
-      "port": 443,
-      "listen": "0.0.0.0",
-      "protocol": "hysteria",
-      "settings": {
-        "clients": [],
-        "version": 2
-      },
-      "streamSettings": {
-        "network": "hysteria",
-        "security": "tls",
-        "finalmask": {
-          "quicParams": {
-            "congestion": "bbr"
-          }
-        },
-        "tlsSettings": {
-          "alpn": [
-            "h3"
-          ],
-          "certificates": [
-            {
-              "keyFile": "/var/lib/remnawave/configs/xray/ssl/privkey.key",
-              "certificateFile": "/var/lib/remnawave/configs/xray/ssl/fullchain.pem"
-            }
-          ]
-        },
-        "hysteriaSettings": {
-          "version": 2,
-          "bandwidth": {
-            "up": 300,
-            "down": 300
-          },
-          "ignoreClientBandwidth": false
-        }
-      }
-    },
-    {
-      "tag": "HYSTERIA-STEALTH",
-      "port": 444,
-      "listen": "0.0.0.0",
-      "protocol": "hysteria",
-      "settings": {
-        "clients": [],
-        "version": 2
-      },
-      "streamSettings": {
-        "network": "hysteria",
-        "security": "tls",
-        "finalmask": {
-          "quicParams": {
-            "congestion": "bbr"
-          }
-        },
-        "tlsSettings": {
-          "alpn": [
-            "h3"
-          ],
-          "certificates": [
-            {
-              "keyFile": "/var/lib/remnawave/configs/xray/ssl/privkey.key",
-              "certificateFile": "/var/lib/remnawave/configs/xray/ssl/fullchain.pem"
-            }
-          ]
-        },
-        "hysteriaSettings": {
-          "obfs": {
-            "type": "salamander",
-            "password": "сгенерируй здесь в ML-KEM768 Client side"
-          },
-          "version": 2,
-          "bandwidth": {
-            "up": 300,
-            "down": 300
-          },
-          "masquerade": {
-            "type": "proxy",
-            "proxy": {
-              "url": "google.com"
-            }
-          },
-          "udpIdleTimeout": 60,
-          "ignoreClientBandwidth": false
-        }
-      }
     }
   ],
   "outbounds": [
@@ -362,16 +275,8 @@ netfilter-persistent save
 }
 ```
 Сохраняем
-2. Переходим во вкладку **Хосты**, создаем 3 хоста: 
-##### **Хост 1. HYSTERIA-FAST**
-![HYSTERIA-FAST 1](./images/hysteria-fast-1.png)
-![HYSTERIA-FAST 2](./images/hysteria-fast-2.png)
-
-##### **Хост 2. HYSTERIA-STEALTH**
-![HYSTERIA-STEALTH 1](./images/hysteria-stealth-1.png)
-![HYSTERIA-STEALTH 2](./images/hysteria-stealth-2.png)
-
-##### **Хост 3. VLESS SELFSTEAL**
+2. Переходим во вкладку **Хосты**, создаем хост: 
+##### *VLESS SELFSTEAL**
 ![SELFSTEAL 1](./images/selfsteal-1.png)
 ![SELFSTEAL 2](./images/selfsteal-2.png)
 ##### 3. Выставляем у ноды созданный конфиг, добавляем в сквады, готово!
